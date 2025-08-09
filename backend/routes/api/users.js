@@ -7,6 +7,8 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
 
+const {Op} =  require('sequelize')
+
 const { check } = require('express-validator');
 const { handleValidationErrors } = require('../../utils/validation');
 
@@ -51,6 +53,23 @@ router.post(
   async (req, res) => {
     const { email, password, username , firstName, lastName } = req.body;
     const hashedPassword = bcrypt.hashSync(password);
+    const existingUser = await User.findOne({
+        where:{
+            [Op.or]: [{ email }, { username }]
+        }
+    })
+
+    if (existingUser) {
+        return res.status(500).json({
+          "message": "User already exists",
+          "errors": {
+            "email": "User with that email already exists",
+            "username": "User with that username already exists"
+          }
+        })
+      }
+
+
     const user = await User.create({ email, username, firstName, lastName, hashedPassword });
 
     const safeUser = {
